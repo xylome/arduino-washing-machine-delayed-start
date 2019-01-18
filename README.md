@@ -5,12 +5,12 @@ Can be used to delay anything via an optocoupler.
 ![The prototype](img/prototype.jpg)
 
 ## How to use
-When powering on the circuit, the status LED shows the default number of hours it will wait before trigering the optocoupler. Left button allows to increment that number by one hour on each pression (max 9 hours). Once set, the countdown starts when you press the button on the right.
+When powering on the circuit, the status LED shows the default number of hours it will wait before triggering the optocoupler. Left button allows to increment that number by one hour on each pression (max 9 hours). Once set, the countdown starts when you press the button on the right.
 
-The status LED shows the remaining hours left until the triger.
+The status LED shows the remaining hours left until the trigger.
 
 The start of my washing machine consists in two steps :
-* swith on;
+* switch on;
 * start washing;
 
 Hence, the 2 channel optocoupler. A status LED is linked with each channel to allow troubleshooting.
