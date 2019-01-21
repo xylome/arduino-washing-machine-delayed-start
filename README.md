@@ -42,3 +42,5 @@ When everything is done, the status LED will blink several times each 5 seconds 
 
 ## Documentation
 To use arduino as ISP, I followed instructions available here : https://create.arduino.cc/projecthub/arjun/programming-attiny85-with-arduino-uno-afb829
+
+Information about optocouplers : http://www.martyncurrey.com/arduino-with-optocouplers/

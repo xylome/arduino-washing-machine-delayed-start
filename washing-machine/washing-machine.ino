@@ -33,13 +33,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define DEBUG ON
 #endif
 
+#define TIME_BEFORE_SETUP 200
 #define TIME_DISPLAY 200
 #define MAX_HOURS 9
 #define DEFAULT_HOURS 4
 #define SECONDS_PER_HOUR 3600
 
-#define ON_OFF_TIME 1000
-#define PAUSE_BETWEEN_ACTIONS 4000
+#define ON_OFF_TIME 5000
+#define PAUSE_BETWEEN_ACTIONS 3000
 #define PLAY_PAUSE_TIME 1000
 
 #define MAIN_LOOP_SECONDS 2000
@@ -97,6 +98,7 @@ void setup() {
   requested_hours = DEFAULT_HOURS;
   
   // show us the default setting
+  delay(TIME_BEFORE_SETUP);
   blink(requested_hours, STATUS_LED);
   
   while (!play_button.isPressed()) {
