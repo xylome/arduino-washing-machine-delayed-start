@@ -15,9 +15,9 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+#include <avr/sleep.h>
 
 #include <Button.h>
-
 #if defined (__AVR_ATtiny85__)
 #define BUTTON_SETUP 0
 #define BUTTON_PLAY 1
@@ -36,18 +36,67 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define TIME_BEFORE_SETUP 200
 #define TIME_DISPLAY 200
 #define MAX_HOURS 9
-#define DEFAULT_HOURS 4
+#define DEFAULT_HOURS 5
 #define SECONDS_PER_HOUR 3600
 
 #define ON_OFF_TIME 5000
 #define PAUSE_BETWEEN_ACTIONS 3000
 #define PLAY_PAUSE_TIME 1000
 
-#define MAIN_LOOP_SECONDS 2000
-#define END_BLINK_TIME 15
-#define END_LOOP_PAUSE 5000
+#define END_BLINK_TIME 8
+#define END_BLINK_DELAY 80
+
+// Routines to set and clear bits (used in the sleep code)
+#ifndef cbi
+#define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
+#endif
+#ifndef sbi
+#define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
+#endif
 
 int requested_hours;
+volatile int f_timer = 0;
+
+void system_sleep(int mode) {
+  cbi(ADCSRA,ADEN);                    // switch Analog to Digitalconverter OFF
+  set_sleep_mode(mode);
+  sleep_enable();
+  sleep_mode();                        // System actually sleeps here
+  sleep_disable();                     // System continues execution here when watchdog timed out 
+  sbi(ADCSRA,ADEN);                    // switch Analog to Digitalconverter ON
+}
+
+// 0=16ms, 1=32ms,2=64ms,3=128ms,4=250ms,5=500ms
+// 6=1 sec,7=2 sec, 8=4 sec, 9= 8sec
+void setup_watchdog(int ii) {
+  byte bb;
+  int ww;
+  
+  if (ii > 9 ) { 
+    ii=9;
+  }
+  
+  bb = ii & 7;
+  if (ii > 7) {
+    bb |= (1<<5);
+  }
+  
+  bb |= (1<<WDCE);
+  
+  ww = bb;
+ 
+  MCUSR &= ~(1 << WDRF);
+  // start timed sequence
+  WDTCR |= (1 << WDCE) | (1 << WDE);
+  // set new watchdog timeout value
+  WDTCR = bb;
+  WDTCR |= _BV(WDIE);
+}
+  
+// Watchdog Interrupt Service / is executed when watchdog timed out
+ISR(WDT_vect) {
+  f_timer = 1;  // set global flag
+}
 
 void blink(int time, int dest) {
   for (int i = 0; i < time; i++) {
@@ -71,16 +120,21 @@ void start_washing_machine() {
 void end_display(int dest) {
   for (int i = 0; i < END_BLINK_TIME; i++) {
     digitalWrite(dest, HIGH);
-    delay(100);
+    delay(END_BLINK_DELAY);
     digitalWrite(dest, LOW);
-    delay(100);
+    delay(END_BLINK_DELAY);
   }
 }
 
 void end_loop() {
+  setup_watchdog(9);
+  f_timer = 1;
   while(true) {
-    end_display(STATUS_LED);
-    delay(END_LOOP_PAUSE);
+    if (f_timer == 1) {
+      f_timer = 0;
+      end_display(STATUS_LED);
+      system_sleep(SLEEP_MODE_PWR_DOWN);
+    }
   }
 }
 
@@ -91,13 +145,13 @@ void setup() {
   pinMode(STATUS_LED, OUTPUT);
   pinMode(ON_OFF, OUTPUT);
   pinMode(PLAY_PAUSE, OUTPUT);
-  
+
 #if defined(DEBUG)
   Serial.begin(9600);
 #endif
   requested_hours = DEFAULT_HOURS;
   
-  // show us the default setting
+  // Show us the default setting.
   delay(TIME_BEFORE_SETUP);
   blink(requested_hours, STATUS_LED);
   
@@ -110,6 +164,8 @@ void setup() {
       blink(requested_hours, STATUS_LED);
     }
   }
+
+  setup_watchdog(8);
 }
 
 void loop() {
@@ -124,27 +180,33 @@ void loop() {
   Serial.print(end_time);
   Serial.println("s");
 #endif
-  
+  f_timer = 1;
   while (true) {
-    remaining_seconds = end_time - (millis() / 1000);
-    remaining_hours = remaining_seconds / SECONDS_PER_HOUR;
+    if (f_timer == 1) {
+      f_timer = 0;
+      
+      remaining_seconds = end_time - (millis() / 1000);
+      remaining_hours = remaining_seconds / SECONDS_PER_HOUR;
+
 #if defined(DEBUG)
-    Serial.print("remaining secsonds: ");
-    Serial.print(remaining_seconds);
-    Serial.print("s - remaining hours: ");
-    Serial.print(remaining_hours);
-    Serial.print("h - end time: ");
-    Serial.print(end_time);
-    Serial.print("s - now: ");
-    Serial.print(millis()  / 1000);
-    Serial.println("s");
+      Serial.print("remaining secsonds: ");
+      Serial.print(remaining_seconds);
+      Serial.print("s - remaining hours: ");
+      Serial.print(remaining_hours);
+      Serial.print("h - end time: ");
+      Serial.print(end_time);
+      Serial.print("s - now: ");
+      Serial.print(millis()  / 1000);
+      Serial.println("s");
 #endif
-    if (remaining_seconds <= 0) {
-      start_washing_machine();
-      end_loop();
-    } else {
+     
       blink(remaining_hours + 1, STATUS_LED);
+      if (remaining_seconds <= 0) {
+        start_washing_machine();
+        end_loop();
+      }
+      // Cannot set above, else the internal counter is stopped.
+      system_sleep(SLEEP_MODE_IDLE); 
     }
-    delay(MAIN_LOOP_SECONDS);
   }
 }
