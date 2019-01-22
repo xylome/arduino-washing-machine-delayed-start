@@ -42,9 +42,13 @@ When everything is done, the status LED will blink several times each 5 seconds 
 
 ## Power consumption
 This version includes sleeping mode to reduce power consumtpion : in running mode, the current intensity is about 1.3 mA. In end mode (waiting for someone to switch off the device), the intensity drops to 5 µA.
-In a normal day, the consumption for my usage should be about 6,5 mAh. With a 500 mAh lipo battery, it should run 76 days without recharging.
+In a normal day, the consumption for my usage should be about 6,5 mAh. With a 500 mAh lipo battery, it should run 76 days in one charging cycle : wouhou ✋
 
 ## Documentation
 To use arduino as ISP, I followed instructions available here : https://create.arduino.cc/projecthub/arjun/programming-attiny85-with-arduino-uno-afb829
 
 Information about optocouplers : http://www.martyncurrey.com/arduino-with-optocouplers/
+
+Information about sleep mode on arduino, and especially on attiny85 :
+  * https://playground.arduino.cc/Learning/ArduinoSleepCode
+  * https://www.re-innovation.co.uk/docs/sleep-modes-on-attiny85/
